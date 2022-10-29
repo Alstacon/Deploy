@@ -1,4 +1,4 @@
-name: Build and deploy workflow
+name: Build and deploy action
 on: [push]
 jobs:
   build_and_push:
@@ -7,16 +7,16 @@ jobs:
       - name: clone code
         uses: actions/checkout@v2
       - name: docker build
-        run: docker build -t alstacon/skypro_app:$GITHUB_REF_NAME-$GITHUB_RUN_ID .
+        run: docker build -t sermalenk/flask-app:$GITHUB_REF_NAME-$GITHUB_RUN_ID .
       - name: docker login
-        run: echo ${{ secrets.DOCKER_TOKEN }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        run: echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
       - name: docker push
-        run: docker push alstacon/skypro_app:$GITHUB_REF_NAME-$GITHUB_RUN_ID
+        run: docker push sermalenk/flask-app:$GITHUB_REF_NAME-$GITHUB_RUN_ID
   deploy:
-    needs: build_and_push
     runs-on: ubuntu-latest
+    needs: build_and_push
     env:
-      DB_USER: ${{ secrets.DB_USER }}
+      DB_USER: postgres
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       DB_NAME: ${{ secrets.DB_NAME }}
     steps:
@@ -27,21 +27,21 @@ jobs:
           mkdir deploy
           cat docker-compose-ci.yaml | envsubst > deploy/docker-compose.yaml
           cat docker_ci_config.py | envsubst > deploy/docker_config.py
-      - name: copy files to server
+      - name: clone files to server
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           source: "deploy/docker-compose.yaml,deploy/docker_config.py"
-          target: "flask_app_ci"
+          target: "flask-app"
           strip_components: 1
-      - name: deploy app
+      - name: run docker-compose
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           script: |
-            cd flask_app_ci
+            cd flask-app
             echo ${{ secrets.PASSWORD }} | sudo -S docker-compose up -d
