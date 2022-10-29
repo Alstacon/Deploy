@@ -7,16 +7,16 @@ jobs:
       - name: clone code
         uses: actions/checkout@v2
       - name: docker build
-        run: docker build -t sermalenk/flask-app:$GITHUB_REF_NAME-$GITHUB_RUN_ID .
+        run: docker build -t alstacon/skypro_app:$GITHUB_REF_NAME-$GITHUB_RUN_ID .
       - name: docker login
         run: echo ${{ secrets.DOCKER_TOKEN }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
       - name: docker push
-        run: docker push sermalenk/flask-app:$GITHUB_REF_NAME-$GITHUB_RUN_ID
+        run: docker push alstacon/skypro_app:$GITHUB_REF_NAME-$GITHUB_RUN_ID
   deploy:
     runs-on: ubuntu-latest
     needs: build_and_push
     env:
-      DB_USER: postgres
+      DB_USER: ${{ secrets.DB_USER }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       DB_NAME: ${{ secrets.DB_NAME }}
     steps:
